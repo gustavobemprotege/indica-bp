@@ -4,11 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Indique um amigo</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-
 <style>
-
 *{
 margin:0;
 padding:0;
@@ -260,272 +257,222 @@ transform:translateY(0)
 
 </style>
 </head>
-
 <body>
 
 <div class="notificacao" id="notificacao"></div>
-
 <img src="https://i.imgur.com/m0Rfd3K.png" class="logo">
-
 <div class="headline">
-<h1>Indique amigos para ter o veículo seguro com a BP Seguradora também.</h1>
+<h1>Indique amigos que também podem se beneficiar dessa oportunidade.</h1>
 </div>
 
 <div class="app">
-
-<div class="progress" id="progress">
-<div class="bar" id="bar"></div>
+  <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
+  <div class="percent" id="percent"></div>
+  <div id="conteudo"></div>
 </div>
 
-<div class="percent" id="percent"></div>
-
-<div id="conteudo"></div>
-
+<div id="confirmacao" class="popup" style="display:none">
+  <div class="popup-box">
+    <h2 id="tituloConfirm"></h2>
+    <div id="lista"></div>
+    <button onclick="enviar()">Sim, enviar</button>
+  </div>
 </div>
 
-<footer class="footer">
-
-<svg class="dev-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-<path d="M8 5L3 12L8 19M16 5L21 12L16 19M14 3L10 21"/>
-</svg>
-
-Desenvolvido por:
-<a href="https://instagram.com/gu.kasopi" target="_blank">
-Gustavo Kasopi
-</a>
-
-</footer>
+<div id="editarPopup" class="popup" style="display:none">
+  <div class="popup-box">
+    <h2>Editar indicação</h2>
+    <input id="editNome">
+    <input id="editTelefone">
+    <button onclick="salvarEdicao()">Salvar</button>
+  </div>
+</div>
 
 <script>
-
 let etapa=0, nome="", primeiroNome="", qtd=0, indicacaoAtual=1, modo="nome";
 let nomes=[], telefones=[], indiceEdicao=null;
 
-const NUMERO_CONSULTOR="5531997661546";
-const NUMERO_WHATSAPP_FINAL="5531997661546";
-const URL_GOOGLE_SCRIPT="https://script.google.com/macros/s/AKfycbwhZnw4-ffZOzGooQTusfuoIfWFZwHt5JjUisB3BOGyL0t3lFMCKmpucKYsxfiEgrag5Q/exec";
+const NUMERO_CONSULTOR = "5531997661546";
+const NUMERO_WHATSAPP_FINAL = "5531997661546";
+const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwhZnw4-ffZOzGooQTusfuoIfWFZwHt5JjUisB3BOGyL0t3lFMCKmpucKYsxfiEgrag5Q/exec";
 
 function notificar(msg){
-let n=document.getElementById("notificacao");
-n.innerHTML=`<span>${msg}</span>`;
-n.classList.add("show");
-setTimeout(()=>{n.classList.remove("show");},3000);
+  let n=document.getElementById("notificacao");
+  n.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>${msg}</span>`;
+  n.classList.add("show");
+  setTimeout(()=>{ n.classList.remove("show"); },3000);
 }
 
 function mascaraTelefone(input){
-let v=input.value.replace(/\D/g,'');
-if(v.length>11)v=v.slice(0,11);
-if(v.length>2 && v.length<=3)v=v.replace(/(\d{2})(\d+)/,"$1 $2");
-else if(v.length>3 && v.length<=7)v=v.replace(/(\d{2})(\d)(\d+)/,"$1 $2 $3");
-else if(v.length>7)v=v.replace(/(\d{2})(\d)(\d{4})(\d+)/,"$1 $2 $3 $4");
-input.value=v;
+  let v=input.value.replace(/\D/g,'');
+  if(v.length>11)v=v.slice(0,11);
+  if(v.length>2 && v.length<=3)v=v.replace(/(\d{2})(\d+)/,"$1 $2");
+  else if(v.length>3 && v.length<=7)v=v.replace(/(\d{2})(\d)(\d+)/,"$1 $2 $3");
+  else if(v.length>7)v=v.replace(/(\d{2})(\d)(\d{4})(\d+)/,"$1 $2 $3 $4");
+  input.value=v;
 }
 
-function telefoneValido(tel){
-return tel.replace(/\D/g,'').length==11;
-}
+function telefoneValido(tel){return tel.replace(/\D/g,'').length==11;}
 
 function atualizarProgresso(){
-let total=qtd*2;
-let atual=(indicacaoAtual-1)*2;
-if(modo=="telefone")atual++;
-let p=(atual/total)*100;
-document.getElementById("bar").style.width=p+"%";
-document.getElementById("percent").innerText=Math.round(p)+"% concluído";
+  let total=qtd*2, atual=(indicacaoAtual-1)*2;
+  if(modo=="telefone") atual++;
+  let p=(atual/total)*100;
+  document.getElementById("bar").style.width=p+"%";
+  document.getElementById("percent").innerText=Math.round(p)+"% concluído";
 }
 
 function tela(){
+  if(qtd>0) atualizarProgresso();
+  let html="";
+  if(etapa==0){
+    html=`<h2>Olá, qual o seu nome?</h2><input id="nome" placeholder="Ex: João da Silva"><button onclick="salvarNome()">Avançar</button>`;
+  } else if(etapa==1){
+    html=`<h2><center>${primeiroNome}, isso leva apenas 2 minutos, tá bom?</center></h2><button onclick="proxima()">Avançar</button>`;
+  } else if(etapa==2){
+    html=`<h2>${primeiroNome}, quantas pessoas vai indicar?</h2><select id="qtd"><option value="">Selecione</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select><button onclick="salvarQtd()">Avançar</button>`;
+  } else {
+    if(modo=="nome"){
+      html=`<h2>Nome do indicado ${indicacaoAtual}</h2><input id="campo" placeholder="Ex: João da Silva"><button onclick="proximo()">Avançar</button>`;
+    } else {
+      html=`<h2>Telefone de ${nomes[indicacaoAtual-1]}</h2><input id="campo" placeholder="Ex: 31 9 9766 1546" onkeyup="mascaraTelefone(this)"><button onclick="proximo()">Avançar</button>`;
+    }
+  }
+  document.getElementById("conteudo").innerHTML=html;
 
-if(qtd>0)atualizarProgresso();
-
-let html="";
-
-if(etapa==0){
-
-html=`<h2>Olá, qual o seu nome?</h2>
-<input id="nome" placeholder="Ex: João da Silva">
-<button onclick="salvarNome()">Avançar</button>`;
-
-}
-
-else if(etapa==1){
-
-html=`<h2><center>${primeiroNome}, isso leva apenas 2 minutos, tá bom?</center></h2>
-<button onclick="proxima()">Avançar</button>`;
-
-}
-
-else if(etapa==2){
-
-html=`<h2>${primeiroNome}, quantas pessoas vai indicar?</h2>
-
-<select id="qtd">
-<option value="">Selecione</option>
-<option>1</option>
-<option>2</option>
-<option>3</option>
-<option>4</option>
-<option>5</option>
-</select>
-
-<button onclick="salvarQtd()">Avançar</button>`;
-
-}
-
-else{
-
-if(modo=="nome"){
-
-html=`<h2>Nome do indicado ${indicacaoAtual}</h2>
-<input id="campo" placeholder="Ex: João da Silva">
-<button onclick="proximo()">Avançar</button>`;
-
-}
-
-else{
-
-html=`<h2>Telefone de ${nomes[indicacaoAtual-1]}</h2>
-<input id="campo" placeholder="Ex: 31 9 9766 1546" onkeyup="mascaraTelefone(this)">
-<button onclick="proximo()">Avançar</button>`;
-
-}
-
-}
-
-document.getElementById("conteudo").innerHTML=html;
-
-const inputAtual=document.querySelector("#conteudo input, #conteudo select");
-
-if(inputAtual){
-
-inputAtual.focus();
-
-inputAtual.addEventListener("keydown",function(e){
-
-if(e.key==="Enter"){
-
-if(inputAtual.tagName.toLowerCase()==="select")salvarQtd();
-else proximo();
-
-}
-
-});
-
-}
-
+  const inputAtual=document.querySelector("#conteudo input, #conteudo select");
+  if(inputAtual){
+      inputAtual.focus();
+      inputAtual.addEventListener("keydown", function(e){
+          if(e.key==="Enter"){
+              if(inputAtual.tagName.toLowerCase()==="select") salvarQtd();
+              else proximo();
+          }
+      });
+  }
 }
 
 function salvarNome(){
-
-nome=document.getElementById("nome").value;
-
-if(nome==""){
-notificar("Digite seu nome");
-return;
-}
-
-primeiroNome=nome.split(" ")[0];
-
-etapa++;
-tela();
-
+  nome=document.getElementById("nome").value;
+  if(nome==""){ notificar("Digite seu nome"); return; }
+  primeiroNome=nome.split(" ")[0];
+  etapa++; tela();
 }
 
 function salvarQtd(){
-
-qtd=parseInt(document.getElementById("qtd").value);
-
-if(!qtd){
-notificar("Selecione quantas pessoas deseja indicar");
-return;
+  qtd=parseInt(document.getElementById("qtd").value);
+  if(!qtd){ notificar("Selecione quantas pessoas deseja indicar"); return; }
+  document.getElementById("progress").style.display="block";
+  document.getElementById("percent").style.display="block";
+  etapa++; tela();
 }
 
-document.getElementById("progress").style.display="block";
-document.getElementById("percent").style.display="block";
-
-etapa++;
-tela();
-
-}
-
-function proxima(){
-etapa++;
-tela();
-}
+function proxima(){etapa++; tela();}
 
 function proximo(){
-
-let valor=document.getElementById("campo").value;
-
-if(valor==""){
-notificar("Preencha o campo");
-return;
-}
-
-if(modo=="nome"){
-
-nomes.push(valor.toUpperCase());
-modo="telefone";
-
-}
-
-else{
-
-if(!telefoneValido(valor)){
-notificar(`${primeiroNome}, digite um telefone válido`);
-return;
-}
-
-telefones.push(valor);
-
-if(indicacaoAtual<qtd){
-
-indicacaoAtual++;
-modo="nome";
-
-}
-
-else{
-
-confirmar();
-return;
-
-}
-
-}
-
-tela();
-
+  let valor=document.getElementById("campo").value;
+  if(valor==""){ notificar("Preencha o campo"); return; }
+  if(modo=="nome"){ nomes.push(valor.toUpperCase()); modo="telefone"; }
+  else{
+    if(!telefoneValido(valor)){ notificar(`${primeiroNome}, por favor digite um telefone válido`); return; }
+    telefones.push(valor);
+    if(indicacaoAtual<qtd){ indicacaoAtual++; modo="nome"; } else { confirmar(); return; }
+  }
+  tela();
 }
 
 function confirmar(){
-
-let lista="";
-
-for(let i=0;i<nomes.length;i++){
-
-lista+=`<div class="lead-item">
-<div>
-<strong>${nomes[i]}</strong><br>${telefones[i]}
-</div>
-
-<div class="edit-btn" onclick="editar(${i})">
-Editar
-</div>
-</div>`;
-
+  let lista="";
+  for(let i=0;i<nomes.length;i++){
+    lista+=`<div class="lead-item"><div><strong>${nomes[i]}</strong><br>${telefones[i]}</div><div class="edit-btn" onclick="editar(${i})">Editar</div></div>`;
+  }
+  document.getElementById("tituloConfirm").innerText=`${primeiroNome}, os dados estão corretos?`;
+  document.getElementById("lista").innerHTML=lista;
+  document.getElementById("confirmacao").style.display="flex";
 }
 
-document.getElementById("tituloConfirm").innerText=`${primeiroNome}, os dados estão corretos?`;
+function editar(i){
+  indiceEdicao=i;
+  const inputNome=document.getElementById("editNome");
+  const inputTelefone=document.getElementById("editTelefone");
+  inputNome.value=nomes[i];
+  inputTelefone.value=telefones[i];
+  inputTelefone.onkeyup=function(){ mascaraTelefone(this); }
+  document.getElementById("editarPopup").style.display="flex";
+}
 
-document.getElementById("lista").innerHTML=lista;
+function salvarEdicao(){
+  const novoNome=document.getElementById("editNome").value.toUpperCase();
+  const novoTelefone=document.getElementById("editTelefone").value.toUpperCase();
+  if(!telefoneValido(novoTelefone)){ notificar(`${primeiroNome}, por favor digite um telefone válido`); return; }
+  nomes[indiceEdicao]=novoNome;
+  telefones[indiceEdicao]=novoTelefone;
+  document.getElementById("editarPopup").style.display="none";
+  confirmar();
+}
 
-document.getElementById("confirmacao").style.display="flex";
+async function enviar(){
+  const btnEnviar=document.querySelector("#confirmacao button");
+  btnEnviar.disabled=true; btnEnviar.innerText="Enviando...";
+  document.querySelectorAll(".app input, .app select, .app button").forEach(el=>{ el.disabled=true; });
+  let erro=false;
+  for(let i=0;i<nomes.length;i++){
+    try{
+      const response=await fetch(URL_GOOGLE_SCRIPT,{method:"POST",body:JSON.stringify({nomeLead:nomes[i],telefone:telefones[i],indicador:nome})});
+      if(!response.ok){ erro=true; console.error("Erro ao enviar lead:", nomes[i]); }
+    } catch(e){ erro=true; console.error("Erro de rede ao enviar lead:", nomes[i], e); }
+  }
+  if(erro){
+    notificar("Houve um problema ao enviar as indicações. Você pode enviá-las diretamente para o consultor.");
+    const lista=document.getElementById("lista");
+    const btnEnviar=document.querySelector("#confirmacao button");
+    btnEnviar.style.display="none";
+    if(!document.getElementById("botaoAlternativo")){
+      const botaoAlt=document.createElement("button");
+      botaoAlt.id="botaoAlternativo";
+      botaoAlt.innerText="Enviar diretamente para o consultor";
+      botaoAlt.style.background="#ff9800";
+      botaoAlt.style.marginTop="10px";
+      botaoAlt.onclick=enviarWhatsAppAlternativo;
+      lista.appendChild(botaoAlt);
+    }
+    document.querySelectorAll(".app input, .app select, .app button").forEach(el=>{ el.disabled=false; });
+    return;
+  }
+  agradecimento();
+}
 
+function enviarWhatsAppAlternativo(){
+  let msg=`Olá, estou enviando minhas indicações:\n\n`;
+  for(let i=0;i<nomes.length;i++) msg+=`${i+1}. ${nomes[i]} - ${telefones[i]}\n`;
+  msg=encodeURIComponent(msg);
+  window.open(`https://wa.me/${NUMERO_CONSULTOR}?text=${msg}`,"_blank");
+}
+
+function agradecimento(){
+  document.getElementById("confirmacao").innerHTML=`
+  <div class="popup-box">
+    <span class="fechar-popup" onclick="fecharPopup()">&times;</span>
+    <h2>Muito obrigado ${primeiroNome}!</h2>
+    <p>Pessoas como você fazem nosso negócio ir mais longe.</p>
+    <button onclick="whatsapp()">Finalizar</button>
+  </div>`;
+}
+
+function fecharPopup(){
+  document.getElementById("confirmacao").style.display="none";
+  etapa=0; nome=""; primeiroNome=""; qtd=0; indicacaoAtual=1; modo="nome"; nomes=[]; telefones=[];
+  document.getElementById("progress").style.display="none";
+  document.getElementById("percent").style.display="none";
+  tela();
+}
+
+function whatsapp(){
+  let msg=encodeURIComponent("Oi, acabei de fazer as indicações! 👍");
+  window.location.href="https://wa.me/"+NUMERO_WHATSAPP_FINAL+"?text="+msg;
 }
 
 tela();
-
 </script>
 
 </body>
